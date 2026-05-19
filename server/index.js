@@ -456,10 +456,25 @@ io.on('connection', (socket) => {
   });
 });
 
+const fs = require('fs');
+const clientDistPath = path.join(__dirname, '../client/dist');
+console.log('[Init] Client Dist Path:', clientDistPath);
+console.log('[Init] Does Dist exist?', fs.existsSync(clientDistPath));
+
 // Serve static frontend in production
-app.use(express.static(path.join(__dirname, '../client/dist')));
+app.use(express.static(clientDistPath));
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../client/dist/index.html'));
+  const indexPath = path.join(clientDistPath, 'index.html');
+  if (fs.existsSync(indexPath)) {
+    res.sendFile(indexPath);
+  } else {
+    res.status(404).json({
+      error: 'Frontend build not found!',
+      path: indexPath,
+      __dirname: __dirname,
+      cwd: process.cwd()
+    });
+  }
 });
 
 const PORT = process.env.PORT || 3001;
