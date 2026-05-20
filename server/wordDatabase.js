@@ -8,12 +8,7 @@ const path = require('path');
 
 // Topic file mapping
 const TOPIC_FILES = {
-  'Thực phẩm': 'thuc_pham.json',
-  'Động vật': 'dong_vat.json',
-  'Thể thao': 'the_thao.json',
-  'Màu sắc': 'mau_sac.json',
-  'Địa danh': 'dia_danh.json',
-  'Nghề nghiệp': 'nghe_nghiep.json'
+  'Tổng hợp': 'Topic.json'
 };
 
 // In-memory Sets for fast lookup (loaded once at startup)
@@ -30,7 +25,8 @@ function loadDictionaries() {
     const filePath = path.join(dataDir, fileName);
     try {
       const raw = fs.readFileSync(filePath, 'utf8');
-      const words = JSON.parse(raw);
+      const parsed = JSON.parse(raw);
+      const words = Array.isArray(parsed) ? parsed : (parsed.topics || []);
 
       // Normalize
       const normalizedWords = words.map(w => w.toLowerCase().trim());
