@@ -3,24 +3,14 @@
  * Manages rooms, players, turns, rounds, and game flow
  */
 
-const { getTopics } = require('./wordDatabase');
+const { getRandomWord } = require('./wordDatabase');
 const { validateWord, getLastWord } = require('./validator');
 
 // In-memory store for all rooms
 const rooms = {};
 
-// Topic list with emojis
-const TOPICS = [
-  { name: 'Thực phẩm', emoji: '🍔' },
-  { name: 'Động vật', emoji: '🐾' },
-  { name: 'Thể thao', emoji: '⚽' },
-  { name: 'Màu sắc', emoji: '🎨' },
-  { name: 'Địa danh', emoji: '🗺️' },
-  { name: 'Nghề nghiệp', emoji: '💼' }
-];
-
-const TURN_TIME = 10; // seconds per turn
-const VOTE_TIME = 20; // seconds for voting
+const DEFAULT_TURN_TIME = 10; // seconds per turn
+const DEFAULT_VOTE_TIME = 20; // seconds for voting
 const ROUND_END_DELAY = 5000; // ms before new round
 const ROOM_TIMEOUT = 30 * 60 * 1000; // 30 minutes
 
@@ -38,14 +28,7 @@ function generateRoomCode() {
   return code;
 }
 
-/**
- * Pick a random topic that hasn't been used recently
- */
-function pickRandomTopic(usedTopics = []) {
-  const available = TOPICS.filter(t => !usedTopics.includes(t.name));
-  const pool = available.length > 0 ? available : TOPICS;
-  return pool[Math.floor(Math.random() * pool.length)];
-}
+
 
 /**
  * Create a new room
@@ -66,12 +49,12 @@ function createRoom(playerName, socketId) {
     hostId: socketId,
     state: 'waiting', // waiting, playing, voting, roundEnd
     currentRound: 0,
-    currentTopic: null,
     currentPlayerIndex: 0,
     turnOrder: [],
     wordChain: [],
     usedWords: [],
-    usedTopics: [],
+    turnTime: DEFAULT_TURN_TIME,
+    voteTime: DEFAULT_VOTE_TIME,
     timer: null,
     voteTimer: null,
     pendingVote: null,
@@ -138,6 +121,22 @@ function removePlayer(roomCode, socketId) {
 }
 
 /**
+ * Update room settings (only host can do this)
+ */
+function updateRoomSettings(roomCode, socketId, settings) {
+  const room = rooms[roomCode];
+  if (!room) return { error: 'Phòng không tồn tại' };
+  if (room.hostId !== socketId) return { error: 'Chỉ chủ phòng mới có thể thay đổi cài đặt' };
+  if (room.state !== 'waiting' && room.state !== 'roundEnd') return { error: 'Không thể thay đổi cài đặt khi đang chơi' };
+
+  if (settings.turnTime) room.turnTime = Math.max(5, Math.min(60, settings.turnTime));
+  if (settings.voteTime) room.voteTime = Math.max(10, Math.min(60, settings.voteTime));
+
+  room.lastActivity = Date.now();
+  return { success: true, settings: { turnTime: room.turnTime, voteTime: room.voteTime } };
+}
+
+/**
  * Start a new game
  */
 function startGame(roomCode) {
@@ -159,16 +158,11 @@ function startNewRound(roomCode) {
   if (!room) return { error: 'Phòng không tồn tại' };
 
   room.currentRound++;
-  const topic = pickRandomTopic(room.usedTopics);
-  room.currentTopic = topic;
-  room.usedTopics.push(topic.name);
-  if (room.usedTopics.length >= TOPICS.length) {
-    room.usedTopics = []; // Reset when all topics used
-  }
+  const startWord = getRandomWord();
 
   // Reset round state
-  room.wordChain = [];
-  room.usedWords = [];
+  room.wordChain = [{ word: startWord, player: 'Hệ thống' }];
+  room.usedWords = [startWord.toLowerCase()];
   room.state = 'playing';
 
   // Set turn order (all active players, shuffled)
@@ -182,7 +176,7 @@ function startNewRound(roomCode) {
   room.currentPlayerIndex = 0;
 
   return {
-    topic: room.currentTopic,
+    startWord,
     turnOrder: room.turnOrder.map(id => {
       const p = room.players.find(pl => pl.id === id);
       return p ? p.name : 'Unknown';
@@ -284,8 +278,7 @@ function processWord(roomCode, socketId, word) {
   const result = validateWord(
     word,
     lastPhrase,
-    room.usedWords,
-    room.currentTopic.name
+    room.usedWords
   );
 
   room.lastActivity = Date.now();
@@ -411,8 +404,11 @@ function getRoomInfo(roomCode) {
       isEliminated: p.isEliminated,
       score: p.score
     })),
+    settings: {
+      turnTime: room.turnTime,
+      voteTime: room.voteTime
+    },
     currentRound: room.currentRound,
-    currentTopic: room.currentTopic,
     currentPlayer: getCurrentPlayer(room),
     wordChain: room.wordChain,
     turnOrder: room.turnOrder.map(id => {
@@ -485,7 +481,6 @@ module.exports = {
   cleanupRoom,
   cleanupInactiveRooms,
   findRoomBySocket,
-  TURN_TIME,
-  VOTE_TIME,
+  updateRoomSettings,
   ROUND_END_DELAY
 };

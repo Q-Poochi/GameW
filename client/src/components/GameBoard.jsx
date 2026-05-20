@@ -17,7 +17,7 @@ export default function GameBoard({
   const [input, setInput] = useState('');
   const inputRef = useRef(null);
   const {
-    topic,
+    settings,
     currentPlayer,
     players,
     wordChain,
@@ -139,8 +139,8 @@ export default function GameBoard({
       <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
         <div className="flex items-center gap-3">
           <div className="topic-badge">
-            <span className="text-lg">{topic?.emoji || '🎮'}</span>
-            <span className="text-white">{topic?.name || 'Đang tải...'}</span>
+            <span className="text-lg">🎲</span>
+            <span className="text-white">Chơi tự do</span>
           </div>
           <span className="text-xs text-gray-500 bg-white/5 px-2 py-1 rounded-lg">
             Vòng {round}
@@ -179,7 +179,7 @@ export default function GameBoard({
 
           {/* Timer */}
           <div className="mb-6">
-            <Timer timeLeft={timeLeft} maxTime={10} isActive={timerActive} />
+            <Timer timeLeft={timeLeft} maxTime={settings?.turnTime || 10} isActive={timerActive} />
           </div>
 
           {/* Last Word Hint */}
@@ -193,12 +193,7 @@ export default function GameBoard({
             </div>
           )}
 
-          {!lastWord && wordChain.length === 0 && (
-            <div className="text-center mb-4 text-gray-500 text-sm">
-              <p>Từ đầu tiên - bạn được chọn tự do!</p>
-              <p className="text-xs mt-1">(phải thuộc chủ đề {topic?.name})</p>
-            </div>
-          )}
+
 
           {/* Input */}
           <form onSubmit={handleSubmit} className="w-full max-w-md">

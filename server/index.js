@@ -13,7 +13,7 @@ const {
   getCurrentPlayer, getActivePlayers, eliminatePlayer, processWord,
   acceptWord, setupVote, processVote, getRoomInfo, getRoom,
   cleanupInactiveRooms, findRoomBySocket,
-  TURN_TIME, VOTE_TIME, ROUND_END_DELAY
+  updateRoomSettings, ROUND_END_DELAY
 } = require('./gameLogic');
 
 const app = express();
@@ -54,14 +54,14 @@ function startTurnTimer(roomCode) {
   // Notify all clients
   io.to(roomCode).emit('turn_started', {
     currentPlayer: { id: currentPlayer.id, name: currentPlayer.name },
-    timeLimit: TURN_TIME,
+    timeLimit: room.turnTime,
     startTime: room.turnStartTime
   });
 
   // Set timeout
   room.timer = setTimeout(() => {
     handleTimeout(roomCode);
-  }, TURN_TIME * 1000);
+  }, room.turnTime * 1000);
 }
 
 /**
@@ -124,10 +124,11 @@ function handleRoundEnd(roomCode, winner) {
     if (roundData.error) return;
 
     io.to(roomCode).emit('new_round', {
-      topic: roundData.topic,
+      startWord: roundData.startWord,
       currentPlayer: roundData.currentPlayer,
       turnOrder: roundData.turnOrder,
-      round: currentRoom.currentRound
+      round: currentRoom.currentRound,
+      wordChain: [{ word: roundData.startWord, player: 'Hệ thống' }]
     });
 
     startTurnTimer(roomCode);
@@ -225,8 +226,23 @@ io.on('connection', (socket) => {
 
     socket.emit('room_created', {
       roomCode,
-      players: [{ id: player.id, name: player.name, isHost: true, score: 0 }]
+      players: [{ id: player.id, name: player.name, isHost: true, score: 0 }],
+      settings: { turnTime: 10, voteTime: 20 }
     });
+  });
+
+  // === UPDATE SETTINGS ===
+  socket.on('update_settings', (settings) => {
+    const roomCode = findRoomBySocket(socket.id);
+    if (!roomCode) return;
+
+    const result = updateRoomSettings(roomCode, socket.id, settings);
+    if (result.error) {
+      socket.emit('error_msg', { message: result.error });
+      return;
+    }
+
+    io.to(roomCode).emit('settings_updated', result.settings);
   });
 
   // === JOIN ROOM ===
@@ -273,13 +289,14 @@ io.on('connection', (socket) => {
       return;
     }
 
-    console.log(`[${roomCode}] Game started! Topic: ${result.topic.name}`);
+    console.log(`[${roomCode}] Game started! Start Word: ${result.startWord}`);
 
     io.to(roomCode).emit('game_started', {
-      topic: result.topic,
+      startWord: result.startWord,
       currentPlayer: result.currentPlayer,
       turnOrder: result.turnOrder,
-      round: room.currentRound
+      round: room.currentRound,
+      wordChain: [{ word: result.startWord, player: 'Hệ thống' }]
     });
 
     startTurnTimer(roomCode);
@@ -378,14 +395,14 @@ io.on('connection', (socket) => {
           word,
           playerName: result.currentPlayer.name,
           playerId: socket.id,
-          timeout: VOTE_TIME,
+          timeout: room.voteTime,
           totalVoters: voteSetup.totalVoters
         });
 
         // Vote timeout
         room.voteTimer = setTimeout(() => {
           handleVoteTimeout(roomCode);
-        }, VOTE_TIME * 1000);
+        }, room.voteTime * 1000);
       }
     }
   });

@@ -5,7 +5,7 @@
  * Layer 3: Player Voting (handled via Socket events)
  */
 
-const { isWordInTopic, looksLikeRealWord } = require('./wordDatabase');
+const { isValidWord, looksLikeRealWord } = require('./wordDatabase');
 
 /**
  * Extract the last word from a phrase
@@ -54,10 +54,10 @@ function validateNoDuplicate(newPhrase, usedWords) {
 }
 
 /**
- * Layer 2: Dictionary + Topic Check
- * Check if the word exists in our dictionary and matches the topic
+ * Layer 2: Dictionary Check
+ * Check if the word exists in our dictionary
  */
-function validateDictionary(newPhrase, topic) {
+function validateDictionary(newPhrase) {
   if (!looksLikeRealWord(newPhrase)) {
     return {
       valid: false,
@@ -65,7 +65,7 @@ function validateDictionary(newPhrase, topic) {
     };
   }
 
-  if (isWordInTopic(newPhrase, topic)) {
+  if (isValidWord(newPhrase)) {
     return { valid: true, source: 'dictionary' };
   }
 
@@ -80,7 +80,7 @@ function validateDictionary(newPhrase, topic) {
  *   { valid: false, reason: "..." } - rejected
  *   { valid: null, needsVoting: true } - needs player vote
  */
-function validateWord(newPhrase, lastPhrase, usedWords, topic) {
+function validateWord(newPhrase, lastPhrase, usedWords) {
   // Sanitize input
   const trimmed = newPhrase.trim();
   if (!trimmed || trimmed.length === 0) {
@@ -99,7 +99,7 @@ function validateWord(newPhrase, lastPhrase, usedWords, topic) {
   if (!duplicateResult.valid) return duplicateResult;
 
   // Layer 2: Dictionary check
-  const dictResult = validateDictionary(trimmed, topic);
+  const dictResult = validateDictionary(trimmed);
 
   if (dictResult.valid === true) {
     return { valid: true, source: 'dictionary' };

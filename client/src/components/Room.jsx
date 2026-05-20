@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 /**
  * Room/Lobby waiting screen before game starts
  */
-export default function Room({ roomCode, players, isHost, onStartGame }) {
+export default function Room({ roomCode, players, isHost, settings = { turnTime: 10, voteTime: 20 }, onStartGame, onUpdateSettings }) {
   const [copied, setCopied] = useState(false);
 
   const copyCode = async () => {
@@ -25,6 +25,11 @@ export default function Room({ roomCode, players, isHost, onStartGame }) {
   };
 
   const canStart = players.length >= 2;
+
+  const handleSettingsChange = (key, value) => {
+    if (!isHost || !onUpdateSettings) return;
+    onUpdateSettings({ ...settings, [key]: parseInt(value) });
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 relative z-10">
@@ -50,6 +55,49 @@ export default function Room({ roomCode, players, isHost, onStartGame }) {
             >
               {copied ? '✅ Đã copy!' : '📋 Click để copy mã phòng'}
             </button>
+          </div>
+        </div>
+
+        {/* Room Settings */}
+        <div className="mb-6 p-4 rounded-xl bg-white/[0.02] border border-white/5">
+          <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+            ⚙️ Cài đặt phòng
+          </h3>
+          
+          <div className="space-y-4">
+            <div className="flex flex-col gap-2">
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-gray-300">Thời gian 1 lượt</span>
+                <span className="text-primary-400 font-bold">{settings.turnTime}s</span>
+              </div>
+              <input 
+                type="range" 
+                min="5" max="60" step="5"
+                value={settings.turnTime}
+                disabled={!isHost}
+                onChange={(e) => handleSettingsChange('turnTime', e.target.value)}
+                className={`w-full accent-primary-500 ${!isHost && 'opacity-50 cursor-not-allowed'}`}
+              />
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-gray-300">Thời gian bình chọn</span>
+                <span className="text-amber-400 font-bold">{settings.voteTime}s</span>
+              </div>
+              <input 
+                type="range" 
+                min="10" max="60" step="5"
+                value={settings.voteTime}
+                disabled={!isHost}
+                onChange={(e) => handleSettingsChange('voteTime', e.target.value)}
+                className={`w-full accent-amber-500 ${!isHost && 'opacity-50 cursor-not-allowed'}`}
+              />
+            </div>
+            
+            {!isHost && (
+              <p className="text-xs text-gray-500 italic text-center mt-2">Chỉ chủ phòng mới có thể thay đổi cài đặt</p>
+            )}
           </div>
         </div>
 
@@ -125,7 +173,7 @@ export default function Room({ roomCode, players, isHost, onStartGame }) {
           <ul className="text-xs text-gray-500 space-y-1">
             <li>• Nối từ: từ cuối = từ đầu của cụm tiếp theo</li>
             <li>• VD: "con mèo" → "mèo cái" → "cái bàn"</li>
-            <li>• Mỗi vòng có 1 chủ đề riêng</li>
+            <li>• Mỗi vòng sẽ có 1 từ bắt đầu ngẫu nhiên</li>
             <li>• Hết giờ hoặc sai → bị loại!</li>
           </ul>
         </div>

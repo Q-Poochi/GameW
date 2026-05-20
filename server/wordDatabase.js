@@ -17,9 +17,8 @@ const TOPIC_FILES = {
 };
 
 // In-memory Sets for fast lookup (loaded once at startup)
-const topicSets = {};       // { topicName: Set<string> }
-const topicArrays = {};     // { topicName: string[] }
-const allWordsSet = new Set(); // Master set of ALL words across all topics
+const allWordsSet = new Set(); // Master set of ALL words
+const allWordsArray = [];      // Array for random selection and containment check
 
 /**
  * Load all topic dictionaries from JSON files into memory
@@ -33,19 +32,20 @@ function loadDictionaries() {
       const raw = fs.readFileSync(filePath, 'utf8');
       const words = JSON.parse(raw);
 
-      // Normalize and store as Set for O(1) lookup
+      // Normalize
       const normalizedWords = words.map(w => w.toLowerCase().trim());
-      topicSets[topicName] = new Set(normalizedWords);
-      topicArrays[topicName] = normalizedWords;
 
-      // Add to master set
-      normalizedWords.forEach(w => allWordsSet.add(w));
+      // Add to master set and array
+      normalizedWords.forEach(w => {
+        if (!allWordsSet.has(w)) {
+          allWordsSet.add(w);
+          allWordsArray.push(w);
+        }
+      });
 
       console.log(`  ✓ ${topicName}: ${normalizedWords.length} từ`);
     } catch (err) {
       console.error(`  ✗ Lỗi đọc ${fileName}:`, err.message);
-      topicSets[topicName] = new Set();
-      topicArrays[topicName] = [];
     }
   }
 
@@ -57,54 +57,38 @@ console.log('📖 Loading dictionaries...');
 loadDictionaries();
 
 /**
- * Get all words for a specific topic
+ * Get a random word from the global dictionary
  */
-function getWordsForTopic(topic) {
-  return topicArrays[topic] || [];
+function getRandomWord() {
+  if (allWordsArray.length === 0) return 'bắt đầu';
+  const randomIndex = Math.floor(Math.random() * allWordsArray.length);
+  return allWordsArray[randomIndex];
 }
 
 /**
- * Get all available topics
- */
-function getTopics() {
-  return Object.keys(TOPIC_FILES);
-}
-
-/**
- * Check if a word/phrase exists in a topic's dictionary
+ * Check if a word/phrase exists in the global dictionary
  * STRICT matching using Set for O(1) performance
  */
-function isWordInTopic(phrase, topic) {
+function isValidWord(phrase) {
   const normalizedPhrase = phrase.toLowerCase().trim();
-  const topicSet = topicSets[topic];
-  if (!topicSet) return false;
-
+  
   // 1. Exact match (O(1) via Set)
-  if (topicSet.has(normalizedPhrase)) {
+  if (allWordsSet.has(normalizedPhrase)) {
     return true;
   }
 
   // 2. Strict containment check with minimum length
   //    Only match if input contains a dictionary phrase (≥4 chars)
   //    or a dictionary phrase contains the input (≥4 chars)
-  const words = topicArrays[topic] || [];
-  for (const word of words) {
+  for (const word of allWordsArray) {
     if (word.length >= 4 && normalizedPhrase.length >= 4) {
       if (normalizedPhrase.includes(word) && word.length >= 4) return true;
       if (word.includes(normalizedPhrase) && normalizedPhrase.length >= 4) return true;
     }
   }
 
-  // 3. Not found in this topic
+  // 3. Not found
   return false;
-}
-
-/**
- * Check if a word exists in ANY topic (general validity check)
- */
-function isWordInAnyTopic(phrase) {
-  const normalizedPhrase = phrase.toLowerCase().trim();
-  return allWordsSet.has(normalizedPhrase);
 }
 
 /**
@@ -119,11 +103,9 @@ function looksLikeRealWord(phrase) {
 }
 
 module.exports = {
-  getWordsForTopic,
-  getTopics,
-  isWordInTopic,
-  isWordInAnyTopic,
+  getRandomWord,
+  isValidWord,
   looksLikeRealWord,
-  topicSets,
-  allWordsSet
+  allWordsSet,
+  allWordsArray
 };

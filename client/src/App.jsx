@@ -22,7 +22,7 @@ export default function App() {
 
   // Game state
   const [gameState, setGameState] = useState({
-    topic: null,
+    settings: { turnTime: 10, voteTime: 20 },
     currentPlayer: null,
     players: [],
     wordChain: [],
@@ -73,7 +73,7 @@ export default function App() {
     const handleRoomCreated = (data) => {
       setRoomCode(data.roomCode);
       setIsHost(true);
-      setGameState(prev => ({ ...prev, players: data.players }));
+      setGameState(prev => ({ ...prev, players: data.players, settings: data.settings || prev.settings }));
       setScreen('room');
       sound.init();
     };
@@ -82,7 +82,7 @@ export default function App() {
     const handleRoomJoined = (data) => {
       setRoomCode(data.code);
       setIsHost(false);
-      setGameState(prev => ({ ...prev, players: data.players }));
+      setGameState(prev => ({ ...prev, players: data.players, settings: data.settings || prev.settings }));
       setScreen('room');
       sound.init();
     };
@@ -98,17 +98,16 @@ export default function App() {
     const handleGameStarted = (data) => {
       setGameState(prev => ({
         ...prev,
-        topic: data.topic,
         currentPlayer: data.currentPlayer,
         round: data.round,
-        wordChain: [],
+        wordChain: data.wordChain,
         isEliminated: false,
         voteData: null,
         roundResult: null,
         timerActive: false
       }));
       setScreen('game');
-      showToast(`Chủ đề: ${data.topic.emoji} ${data.topic.name}`, 'info');
+      showToast(`Từ bắt đầu: ${data.startWord}`, 'info');
     };
 
     // Turn started
@@ -201,17 +200,22 @@ export default function App() {
     const handleNewRound = (data) => {
       setGameState(prev => ({
         ...prev,
-        topic: data.topic,
         currentPlayer: data.currentPlayer,
         round: data.round,
-        wordChain: [],
+        wordChain: data.wordChain,
         isEliminated: false,
         voteData: null,
         roundResult: null,
         timerActive: false,
         players: prev.players.map(p => ({ ...p, isEliminated: false }))
       }));
-      showToast(`Vòng ${data.round}: ${data.topic.emoji} ${data.topic.name}`, 'info');
+      showToast(`Vòng ${data.round} - Bắt đầu bằng: ${data.startWord}`, 'info');
+    };
+
+    // Settings updated
+    const handleSettingsUpdated = (data) => {
+      setGameState(prev => ({ ...prev, settings: data }));
+      showToast('Cập nhật cài đặt phòng', 'info');
     };
 
     // Player disconnected
@@ -238,6 +242,7 @@ export default function App() {
     on('vote_result', handleVoteResult);
     on('round_ended', handleRoundEnded);
     on('new_round', handleNewRound);
+    on('settings_updated', handleSettingsUpdated);
     on('player_disconnected', handlePlayerDisconnected);
 
     return () => {
@@ -254,6 +259,7 @@ export default function App() {
       off('vote_result', handleVoteResult);
       off('round_ended', handleRoundEnded);
       off('new_round', handleNewRound);
+      off('settings_updated', handleSettingsUpdated);
       off('player_disconnected', handlePlayerDisconnected);
     };
   }, [socket, on, off, showToast, startTimer, stopTimer, sound]);
@@ -271,6 +277,10 @@ export default function App() {
 
   const handleStartGame = () => {
     emit('start_game');
+  };
+
+  const handleUpdateSettings = (settings) => {
+    emit('update_settings', settings);
   };
 
   const handleSubmitWord = (word) => {
@@ -300,7 +310,9 @@ export default function App() {
           roomCode={roomCode}
           players={gameState.players}
           isHost={isHost}
+          settings={gameState.settings}
           onStartGame={handleStartGame}
+          onUpdateSettings={handleUpdateSettings}
         />
       )}
 
