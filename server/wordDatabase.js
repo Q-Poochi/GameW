@@ -52,13 +52,51 @@ function loadDictionaries() {
 console.log('📖 Loading dictionaries...');
 loadDictionaries();
 
+// Words that should NEVER be used as starting words
+const BAD_START_WORDS = new Set([
+  'nay', 'ờ', 'u', 'heo', 'mộ', 'tang', 'mươi', 'mầu', 'ngùy', 'thọ',
+  'ẹ', 'giãn', 'mẽ', 'sau', 'muffin', 'đoan', 'kế', 'đẩu', 'dưới', 'độ',
+  'chải', 'chua', 'đến', 'lém', 'một', 'hai', 'ba', 'bốn', 'năm', 'sáu',
+  'bảy', 'tám', 'chín', 'mười', 'lường', 'đâu', 'tôi', 'rươi',
+  // Numbers
+  'mười một', 'mười hai', 'mười ba', 'mười bốn', 'mười lăm',
+  'mười sáu', 'mười bảy', 'mười tám', 'mười chín', 'hai mươi',
+  // Single-char / pronouns / prepositions
+  'và', 'hoặc', 'nhưng', 'vì', 'nên', 'nếu', 'thì', 'như', 'hơn',
+  'kém', 'bằng', 'cùng', 'với', 'cho', 'của', 'ở', 'tại', 'từ',
+  'đến', 'qua', 'vào', 'ra', 'lên', 'xuống', 'về', 'theo',
+  'đây', 'đó', 'kia', 'này', 'nọ', 'ai', 'sao', 'đâu',
+  'rất', 'hơi', 'quá', 'bạn', 'họ',
+  // Months / days
+  'thứ hai', 'thứ ba', 'thứ tư', 'thứ năm', 'thứ sáu', 'thứ bảy', 'chủ nhật',
+  'tháng một', 'tháng hai', 'tháng ba', 'tháng tư', 'tháng năm',
+  'tháng sáu', 'tháng bảy', 'tháng tám', 'tháng chín', 'tháng mười',
+  'tháng mười một', 'tháng mười hai'
+]);
+
+// Pre-build the good starting words array (2 syllables, not blacklisted)
+const goodStartWords = [];
+
+function buildStartWords() {
+  for (const word of allWordsArray) {
+    const syllables = word.split(/\s+/);
+    if (syllables.length === 2 && !BAD_START_WORDS.has(word)) {
+      goodStartWords.push(word);
+    }
+  }
+  console.log(`  🎯 Từ bắt đầu hợp lệ: ${goodStartWords.length} từ`);
+}
+
+// Build start words after dictionaries are loaded
+buildStartWords();
+
 /**
- * Get a random word from the global dictionary
+ * Get a random word from the good starting words pool
  */
 function getRandomWord() {
-  if (allWordsArray.length === 0) return 'bắt đầu';
-  const randomIndex = Math.floor(Math.random() * allWordsArray.length);
-  return allWordsArray[randomIndex];
+  if (goodStartWords.length === 0) return 'bắt đầu';
+  const randomIndex = Math.floor(Math.random() * goodStartWords.length);
+  return goodStartWords[randomIndex];
 }
 
 /**
