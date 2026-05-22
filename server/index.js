@@ -360,11 +360,21 @@ io.on('connection', (socket) => {
 
       if (voteSetup.skipVoting) {
         if (voteSetup.reject) {
-          // Not enough players to vote, word not in dictionary - reject
+          // Log missing word for testing mode
+          try {
+            const fs = require('fs');
+            const path = require('path');
+            const missingWordsPath = path.join(__dirname, 'data', 'topics', 'missing_words.txt');
+            fs.appendFileSync(missingWordsPath, word + '\\n');
+            console.log(`[Test Mode] Ghi nhận từ còn thiếu: ${word}`);
+          } catch (e) {
+            console.error('Error logging missing word:', e);
+          }
+
           const elimResult = eliminatePlayer(room, socket.id);
 
           io.to(roomCode).emit('word_rejected', {
-            reason: 'Từ không có trong từ điển! (Cần 3+ người chơi để bình chọn từ mới)',
+            reason: 'Từ không có trong từ điển! (Đã ghi nhận để cập nhật sau)',
             eliminatedPlayer: { id: socket.id, name: result.currentPlayer.name }
           });
 
