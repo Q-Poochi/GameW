@@ -58,14 +58,17 @@ const BAD_START_WORDS = new Set([
   'ẹ', 'giãn', 'mẽ', 'sau', 'muffin', 'đoan', 'kế', 'đẩu', 'dưới', 'độ',
   'chải', 'chua', 'đến', 'lém', 'một', 'hai', 'ba', 'bốn', 'năm', 'sáu',
   'bảy', 'tám', 'chín', 'mười', 'lường', 'đâu', 'tôi', 'rươi',
+  'kép', 'khanh', 'tạng', 'ró', 'đớp', 'quẻ', 'ừ', 'tái', 'bẫm', 'tịch',
+  'giỏi', 'miệng', 'suất', 'sẽ', 'đạm', 'hoạch', 'nhiên', 'nhựa', 'dơi',
+  'đụi', 'đò', 'bi', 'rem', 'mà',
   // Numbers
   'mười một', 'mười hai', 'mười ba', 'mười bốn', 'mười lăm',
   'mười sáu', 'mười bảy', 'mười tám', 'mười chín', 'hai mươi',
   // Single-char / pronouns / prepositions
   'và', 'hoặc', 'nhưng', 'vì', 'nên', 'nếu', 'thì', 'như', 'hơn',
   'kém', 'bằng', 'cùng', 'với', 'cho', 'của', 'ở', 'tại', 'từ',
-  'đến', 'qua', 'vào', 'ra', 'lên', 'xuống', 'về', 'theo',
-  'đây', 'đó', 'kia', 'này', 'nọ', 'ai', 'sao', 'đâu',
+  'qua', 'vào', 'ra', 'lên', 'xuống', 'về', 'theo',
+  'đây', 'đó', 'kia', 'này', 'nọ', 'ai', 'sao',
   'rất', 'hơi', 'quá', 'bạn', 'họ',
   // Months / days
   'thứ hai', 'thứ ba', 'thứ tư', 'thứ năm', 'thứ sáu', 'thứ bảy', 'chủ nhật',
